@@ -1,0 +1,182 @@
+
+Assignment 3 - Node.js Solutions
+
+========================
+Part 1: Core Modules (Streams)
+========================
+
+1) Read file in chunks using readable stream
+const fs = require("fs");
+
+const readable = fs.createReadStream("./big.txt");
+readable.on("data", (chunk) => {
+  console.log(chunk.toString());
+});
+
+------------------------------------------------
+
+2) Copy file using readable & writable streams
+const fs = require("fs");
+
+const readable = fs.createReadStream("./source.txt");
+const writable = fs.createWriteStream("./dest.txt");
+
+readable.pipe(writable);
+console.log("File copied using streams");
+
+------------------------------------------------
+
+3) Pipeline with compression
+const fs = require("fs");
+const zlib = require("zlib");
+const { pipeline } = require("stream");
+
+pipeline(
+  fs.createReadStream("./data.txt"),
+  zlib.createGzip(),
+  fs.createWriteStream("./data.txt.gz"),
+  (err) => {
+    if (err) console.error(err);
+    else console.log("File compressed successfully");
+  }
+);
+
+========================
+Part 2: CRUD Operations (HTTP + fs)
+========================
+
+users.json
+[]
+
+------------------------------------------------
+
+server.js
+
+const http = require("http");
+const fs = require("fs");
+const url = require("url");
+
+const filePath = "./users.json";
+
+function readUsers() {
+  return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+}
+
+function writeUsers(users) {
+  fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+}
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const method = req.method;
+  const id = parsedUrl.pathname.split("/")[2];
+
+  if (method === "GET" && parsedUrl.pathname === "/user") {
+    const users = readUsers();
+    res.end(JSON.stringify(users));
+  }
+
+  else if (method === "GET" && id) {
+    const users = readUsers();
+    const user = users.find(u => u.id == id);
+    res.end(JSON.stringify(user || { message: "User not found" }));
+  }
+
+  else if (method === "POST" && parsedUrl.pathname === "/user") {
+    let body = "";
+    req.on("data", chunk => body += chunk);
+    req.on("end", () => {
+      const newUser = JSON.parse(body);
+      const users = readUsers();
+
+      const exists = users.some(u => u.email === newUser.email);
+      if (exists) {
+        res.end(JSON.stringify({ message: "Email already exists" }));
+        return;
+      }
+
+      newUser.id = Date.now();
+      users.push(newUser);
+      writeUsers(users);
+
+      res.end(JSON.stringify({ message: "User added", user: newUser }));
+    });
+  }
+
+  else if (method === "PATCH" && id) {
+    let body = "";
+    req.on("data", chunk => body += chunk);
+    req.on("end", () => {
+      const updatedData = JSON.parse(body);
+      const users = readUsers();
+
+      const index = users.findIndex(u => u.id == id);
+      if (index === -1) {
+        res.end(JSON.stringify({ message: "User not found" }));
+        return;
+      }
+
+      users[index] = { ...users[index], ...updatedData };
+      writeUsers(users);
+
+      res.end(JSON.stringify({ message: "User updated", user: users[index] }));
+    });
+  }
+
+  else if (method === "DELETE" && id) {
+    const users = readUsers();
+    const newUsers = users.filter(u => u.id != id);
+    writeUsers(newUsers);
+
+    res.end(JSON.stringify({ message: "User deleted" }));
+  }
+
+  else {
+    res.end(JSON.stringify({ message: "Route not found" }));
+  }
+});
+
+server.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+
+========================
+Part 3: Node Internals (Theory)
+========================
+
+1) Event Loop
+Manages execution of asynchronous callbacks.
+
+2) Libuv
+Handles async operations and thread pool.
+
+3) Async Operations
+Uses event queue and thread pool.
+
+4) Call Stack vs Event Queue vs Event Loop
+Stack executes code, queue holds callbacks, loop manages flow.
+
+5) Thread Pool
+Runs heavy operations.
+Change size:
+UV_THREADPOOL_SIZE=8 node server.js
+
+6) Blocking vs Non-blocking
+Blocking stops execution, non-blocking does not.
+
+========================
+Bonus
+========================
+
+Majority Element - LeetCode
+
+var majorityElement = function(nums) {
+  let count = 0;
+  let candidate = null;
+
+  for (let num of nums) {
+    if (count === 0) candidate = num;
+    count += (num === candidate) ? 1 : -1;
+  }
+  return candidate;
+};
