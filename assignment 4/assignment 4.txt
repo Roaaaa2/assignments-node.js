@@ -1,0 +1,80 @@
+Assignment 4 – Express.js
+
+Part 1: CRUD Operations Using Express.js
+
+This project implements a simple CRUD system using Express.js and the fs module.
+All user data is stored in a JSON file (users.json), and no in-memory arrays are used.
+
+APIs Implemented:
+
+1. Add New User
+Endpoint: POST /user
+Description:
+Adds a new user to users.json after checking that the email does not already exist.
+
+2. Update User by ID
+Endpoint: PATCH /user/:id
+Description:
+Updates user name, age, or email using the user ID provided in request params.
+
+3. Delete User by ID
+Endpoint: DELETE /user/:id
+Description:
+Deletes a user from users.json using the provided ID.
+
+4. Get User by Name
+Endpoint: GET /user/getByName?name=value
+Description:
+Returns a user matching the provided name.
+
+5. Get All Users
+Endpoint: GET /user
+Description:
+Returns all users stored in users.json.
+
+6. Filter Users by Minimum Age
+Endpoint: GET /user/filter?minAge=value
+Description:
+Returns users whose age is greater than or equal to the given value.
+
+7. Get User by ID
+Endpoint: GET /user/:id
+Description:
+Returns a user by their unique ID.
+
+
+Part 2: ERD Diagram Description
+
+Entities:
+
+Musician:
+- musician_id (Primary Key)
+- name
+- street
+- city
+- phone
+
+Instrument:
+- instrument_name (Primary Key)
+- musical_key
+
+Album:
+- album_id (Primary Key)
+- title (Unique)
+- copyright_date
+- producer_id (Foreign Key referencing Musician)
+
+Song:
+- title (Primary Key)
+- author
+- album_id (Foreign Key referencing Album)
+
+Relationships:
+- Musician and Instrument: Many-to-Many
+- Album and Song: One-to-Many
+- Musician and Song: Many-to-Many
+- Musician and Album (Producer): One-to-Many
+
+
+Bonus:
+The Longest Common Prefix problem from LeetCode is solved and included in a separate file named bonus.js.
