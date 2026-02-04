@@ -1,80 +1,197 @@
-Assignment 4 – Express.js
+ASSIGNMENT 4
+==================
+part1:Basic Setup
+=================================
+const express = require("express");
+const fs = require("fs");
+const app = express();
 
-Part 1: CRUD Operations Using Express.js
+app.use(express.json());
 
-This project implements a simple CRUD system using Express.js and the fs module.
-All user data is stored in a JSON file (users.json), and no in-memory arrays are used.
+const filePath = "./users.json";
 
-APIs Implemented:
+function readUsers() {
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data || "[]");
+}
 
-1. Add New User
-Endpoint: POST /user
-Description:
-Adds a new user to users.json after checking that the email does not already exist.
+function writeUsers(users) {
+  fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+}
 
-2. Update User by ID
-Endpoint: PATCH /user/:id
-Description:
-Updates user name, age, or email using the user ID provided in request params.
+========================================
+1) Add New User
+POST /user
+=======================
 
-3. Delete User by ID
-Endpoint: DELETE /user/:id
-Description:
-Deletes a user from users.json using the provided ID.
+app.post("/user", (req, res) => {
+  const users = readUsers();
+  const { name, age, email } = req.body;
 
-4. Get User by Name
-Endpoint: GET /user/getByName?name=value
-Description:
-Returns a user matching the provided name.
+  const exists = users.find(u => u.email === email);
+  if (exists) {
+    return res.status(400).json({ message: "Email already exists" });
+  }
 
-5. Get All Users
-Endpoint: GET /user
-Description:
-Returns all users stored in users.json.
+  const newUser = {
+    id: Date.now(),
+    name,
+    age,
+    email
+  };
 
-6. Filter Users by Minimum Age
-Endpoint: GET /user/filter?minAge=value
-Description:
-Returns users whose age is greater than or equal to the given value.
+  users.push(newUser);
+  writeUsers(users);
 
-7. Get User by ID
-Endpoint: GET /user/:id
-Description:
-Returns a user by their unique ID.
+  res.json({ message: "User added", user: newUser });
+});
 
+===============================
+2) Update User
+PATCH /user/:id
+==============================
 
-Part 2: ERD Diagram Description
+app.patch("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const user = users.find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const { name, age, email } = req.body;
+  if (name) user.name = name;
+  if (age) user.age = age;
+  if (email) user.email = email;
+
+  writeUsers(users);
+  res.json({ message: "User updated", user });
+});
+
+======================================
+3) Delete User
+DELETE /user/:id
+======================
+
+app.delete("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const newUsers = users.filter(u => u.id !== id);
+  if (users.length === newUsers.length) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  writeUsers(newUsers);
+  res.json({ message: "User deleted" });
+});
+
+==============================
+4) Get User By Name
+GET /user/getByName?name=Ali
+==============================
+
+app.get("/user/getByName", (req, res) => {
+  const users = readUsers();
+  const { name } = req.query;
+
+  const user = users.find(u => u.name === name);
+  res.json(user || { message: "User not found" });
+});
+
+==================================
+5) Get All Users
+GET /user
+=========================
+
+app.get("/user", (req, res) => {
+  const users = readUsers();
+  res.json(users);
+});
+
+===========================================
+6) Filter Users By Minimum Age
+GET /user/filter?age=20
+=========================
+app.get("/user/filter", (req, res) => {
+  const users = readUsers();
+  const minAge = Number(req.query.age);
+
+  const result = users.filter(u => u.age >= minAge);
+  res.json(result);
+});
+
+============================================
+7) Get User By ID
+GET /user/:id
+====================
+
+app.get("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const user = users.find(u => u.id === id);
+  res.json(user || { message: "User not found" });
+})
+
+Server Run
+===========
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+
+===============================================
+Part 2: 
+===========
 
 Entities:
 
 Musician:
-- musician_id (Primary Key)
-- name
-- street
-- city
-- phone
+ musician_id (PK)
+ name
+ street
+ city
+ phone
 
 Instrument:
-- instrument_name (Primary Key)
-- musical_key
+ instrument_name (PK)
+ musical_key
 
 Album:
-- album_id (Primary Key)
-- title (Unique)
-- copyright_date
-- producer_id (Foreign Key referencing Musician)
+ album_id (PK)
+ title
+ copyright_date
+ producer_id (FK)
 
 Song:
-- title (Primary Key)
-- author
-- album_id (Foreign Key referencing Album)
+ song_title (PK)
+ author
+ album_id (FK)
 
 Relationships:
-- Musician and Instrument: Many-to-Many
-- Album and Song: One-to-Many
-- Musician and Song: Many-to-Many
-- Musician and Album (Producer): One-to-Many
+ Musician & Instrument: Many-to-Many
+ Musician & Song: Many-to-Many
+ Album & Song: One-to-Many
+ Musician & Album (Producer): One-to-Many
 
+===========================================
+Bonus: 
+File: bonus.js
+===============================================
 
-Bonus:
-The Longest Common Prefix problem from LeetCode is solved and included in a separate file named bonus.js.
+var longestCommonPrefix = function(strs) {
+  if (strs.length === 0) return "";
+
+  let prefix = strs[0];
+
+  for (let i = 1; i < strs.length; i++) {
+    while (strs[i].indexOf(prefix) !== 0) {
+      prefix = prefix.slice(0, -1);
+      if (prefix === "") return "";
+    }
+  }
+  return prefix;
+};
+
