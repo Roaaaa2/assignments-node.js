@@ -1,0 +1,136 @@
+Assignment 2 - Node.js Solutions
+
+========================
+Required Modules
+========================
+const path = require("path");
+const fs = require("fs");
+const os = require("os");
+const EventEmitter = require("events");
+
+
+========================
+Part 1: Questions
+========================
+
+1) Log current file path and directory
+function logPath() {
+  console.log({
+    File: __filename,
+    Dir: __dirname
+  });
+}
+
+2) Get file name from path
+function getFileName(filePath) {
+  return path.basename(filePath);
+}
+
+3) Build path from object
+function buildPath(obj) {
+  return path.join(obj.dir, obj.name + obj.ext);
+}
+
+4) Get file extension
+function getExtension(filePath) {
+  return path.extname(filePath);
+}
+
+5) Parse path (name & ext)
+function parsePath(filePath) {
+  const parsed = path.parse(filePath);
+  return { Name: parsed.name, Ext: parsed.ext };
+}
+
+6) Check if path is absolute
+function isAbsolutePath(filePath) {
+  return path.isAbsolute(filePath);
+}
+
+7) Join multiple segments
+function joinSegments(...segments) {
+  return path.join(...segments);
+}
+
+8) Resolve relative path to absolute
+function resolvePath(relPath) {
+  return path.resolve(relPath);
+}
+
+9) Join two paths
+function joinTwoPaths(p1, p2) {
+  return path.join(p1, p2);
+}
+
+10) Delete file asynchronously
+function deleteFile(filePath) {
+  fs.unlink(filePath, () => {
+    console.log("The file.txt is deleted.");
+  });
+}
+
+11) Create folder synchronously
+function createFolder(folderPath) {
+  fs.mkdirSync(folderPath, { recursive: true });
+  console.log("Success");
+}
+
+12) Event emitter (start event)
+const emitter = new EventEmitter();
+emitter.on("start", () => {
+  console.log("Welcome event triggered!");
+});
+
+13) Emit custom login event
+emitter.on("login", (username) => {
+  console.log(`User logged in: ${username}`);
+});
+emitter.emit("login", "Ahmed");
+
+14) Read file synchronously
+function readFileSyncContent(filePath) {
+  const data = fs.readFileSync(filePath, "utf-8");
+  console.log(`the file content => "${data}"`);
+}
+
+15) Write asynchronously to file
+function writeAsync(filePath, content) {
+  fs.writeFile(filePath, content, () => {
+    console.log("File written successfully");
+  });
+}
+
+16) Check if path or directory exists
+function exists(pathName) {
+  return fs.existsSync(pathName);
+}
+
+17) Get OS platform & architecture
+function getOSInfo() {
+  return {
+    Platform: os.platform(),
+    Arch: os.arch()
+  };
+}
+
+
+========================
+Part 2: Bonus
+========================
+
+kth Missing Positive Number - LeetCode
+
+var findKthPositive = function(arr, k) {
+  let current = 1;
+  let i = 0;
+
+  while (k > 0) {
+    if (i < arr.length && arr[i] === current) {
+      i++;
+    } else {
+      k--;
+      if (k === 0) return current;
+    }
+    current++;
+  }
+};

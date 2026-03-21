@@ -1,0 +1,197 @@
+ASSIGNMENT 4
+==================
+part1:Basic Setup
+=================================
+const express = require("express");
+const fs = require("fs");
+const app = express();
+
+app.use(express.json());
+
+const filePath = "./users.json";
+
+function readUsers() {
+  const data = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(data || "[]");
+}
+
+function writeUsers(users) {
+  fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+}
+
+========================================
+1) Add New User
+POST /user
+=======================
+
+app.post("/user", (req, res) => {
+  const users = readUsers();
+  const { name, age, email } = req.body;
+
+  const exists = users.find(u => u.email === email);
+  if (exists) {
+    return res.status(400).json({ message: "Email already exists" });
+  }
+
+  const newUser = {
+    id: Date.now(),
+    name,
+    age,
+    email
+  };
+
+  users.push(newUser);
+  writeUsers(users);
+
+  res.json({ message: "User added", user: newUser });
+});
+
+===============================
+2) Update User
+PATCH /user/:id
+==============================
+
+app.patch("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const user = users.find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const { name, age, email } = req.body;
+  if (name) user.name = name;
+  if (age) user.age = age;
+  if (email) user.email = email;
+
+  writeUsers(users);
+  res.json({ message: "User updated", user });
+});
+
+======================================
+3) Delete User
+DELETE /user/:id
+======================
+
+app.delete("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const newUsers = users.filter(u => u.id !== id);
+  if (users.length === newUsers.length) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  writeUsers(newUsers);
+  res.json({ message: "User deleted" });
+});
+
+==============================
+4) Get User By Name
+GET /user/getByName?name=Ali
+==============================
+
+app.get("/user/getByName", (req, res) => {
+  const users = readUsers();
+  const { name } = req.query;
+
+  const user = users.find(u => u.name === name);
+  res.json(user || { message: "User not found" });
+});
+
+==================================
+5) Get All Users
+GET /user
+=========================
+
+app.get("/user", (req, res) => {
+  const users = readUsers();
+  res.json(users);
+});
+
+===========================================
+6) Filter Users By Minimum Age
+GET /user/filter?age=20
+=========================
+app.get("/user/filter", (req, res) => {
+  const users = readUsers();
+  const minAge = Number(req.query.age);
+
+  const result = users.filter(u => u.age >= minAge);
+  res.json(result);
+});
+
+============================================
+7) Get User By ID
+GET /user/:id
+====================
+
+app.get("/user/:id", (req, res) => {
+  const users = readUsers();
+  const id = Number(req.params.id);
+
+  const user = users.find(u => u.id === id);
+  res.json(user || { message: "User not found" });
+})
+
+Server Run
+===========
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+
+===============================================
+Part 2: 
+===========
+
+Entities:
+
+Musician:
+ musician_id (PK)
+ name
+ street
+ city
+ phone
+
+Instrument:
+ instrument_name (PK)
+ musical_key
+
+Album:
+ album_id (PK)
+ title
+ copyright_date
+ producer_id (FK)
+
+Song:
+ song_title (PK)
+ author
+ album_id (FK)
+
+Relationships:
+ Musician & Instrument: Many-to-Many
+ Musician & Song: Many-to-Many
+ Album & Song: One-to-Many
+ Musician & Album (Producer): One-to-Many
+
+===========================================
+Bonus: 
+File: bonus.js
+===============================================
+
+var longestCommonPrefix = function(strs) {
+  if (strs.length === 0) return "";
+
+  let prefix = strs[0];
+
+  for (let i = 1; i < strs.length; i++) {
+    while (strs[i].indexOf(prefix) !== 0) {
+      prefix = prefix.slice(0, -1);
+      if (prefix === "") return "";
+    }
+  }
+  return prefix;
+};
+

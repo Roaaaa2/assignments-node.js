@@ -1,0 +1,243 @@
+Assignment 9
+
+User Model (user.model.js)
+===============================
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  phone: { type: String, required: true },
+  age: { type: Number, min: 18, max: 60 }
+}, { timestamps: true });
+
+export default mongoose.model("User", userSchema);
+
+
+Note Model + Custom Validator (note.model.js)
+===============================================
+import mongoose from "mongoose";
+
+const noteSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    validate: {
+      validator: function (value) {
+        return value !== value.toUpperCase();
+      },
+      message: "Title must not be entirely uppercase"
+    }
+  },
+  content: { type: String, required: true },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  }
+}, { timestamps: true });
+
+export default mongoose.model("Note", noteSchema);
+
+
+Password Hashing (hash.js)
+============================================
+import bcrypt from "bcrypt";
+
+export const hashPassword = (password) => bcrypt.hashSync(password, 8);
+export const comparePassword = (password, hash) => bcrypt.compareSync(password, hash);
+
+
+Phone Encryption (encrypt.js)
+=========================================
+import crypto from "crypto";
+
+const key = "12345678901234567890123456789012";
+
+export const encryptPhone = (phone) => {
+  const cipher = crypto.createCipheriv("aes-256-ecb", key, null);
+  return cipher.update(phone, "utf8", "hex") + cipher.final("hex");
+};
+
+
+Auth Middleware (auth.middleware.js)
+=============================================
+import jwt from "jsonwebtoken";
+
+export const auth = (req, res, next) => {
+  const token = req.headers.token;
+  if (!token) return res.status(401).json({ message: "Token required" });
+
+  jwt.verify(token, "secretKey", (err, decoded) => {
+    if (err) return res.status(401).json({ message: "Invalid token" });
+    req.userId = decoded.userId;
+    next();
+  });
+};
+
+
+User APIs
+=============================
+Signup
+import User from "../models/user.model.js";
+import { hashPassword } from "../utils/hash.js";
+import { encryptPhone } from "../utils/encrypt.js";
+
+export const signup = async (req, res) => {
+  const { email, password, phone } = req.body;
+  const exist = await User.findOne({ email });
+  if (exist) return res.json({ message: "Email already exists" });
+
+  const user = await User.create({
+    ...req.body,
+    password: hashPassword(password),
+    phone: encryptPhone(phone)
+  });
+
+  res.json({ message: "User created", user });
+};
+
+
+Login
+import jwt from "jsonwebtoken";
+import { comparePassword } from "../utils/hash.js";
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user || !comparePassword(password, user.password))
+    return res.json({ message: "Invalid credentials" });
+
+  const token = jwt.sign({ userId: user._id }, "secretKey", { expiresIn: "1h" });
+  res.json({ token });
+};
+
+
+Update User
+export const updateUser = async (req, res) => {
+  const user = await User.findByIdAndUpdate(req.userId, req.body, { new: true });
+  res.json(user);
+};
+
+
+Delete User
+export const deleteUser = async (req, res) => {
+  await User.findByIdAndDelete(req.userId);
+  res.json({ message: "User deleted" });
+};
+
+
+Get User
+export const getUser = async (req, res) => {
+  const user = await User.findById(req.userId);
+  res.json(user);
+};
+
+
+Note APIs
+==========================================
+Create Note
+import Note from "../models/note.model.js";
+
+export const createNote = async (req, res) => {
+  const note = await Note.create({ ...req.body, userId: req.userId });
+  res.json(note);
+};
+
+
+Update Note
+export const updateNote = async (req, res) => {
+  const note = await Note.findOneAndUpdate(
+    { _id: req.params.noteId, userId: req.userId },
+    req.body,
+    { new: true }
+  );
+  res.json(note);
+};
+
+
+Replace Note
+export const replaceNote = async (req, res) => {
+  const note = await Note.findOneAndReplace(
+    { _id: req.params.noteId, userId: req.userId },
+    req.body,
+    { new: true }
+  );
+  res.json(note);
+};
+
+
+Update All Titles
+export const updateAllTitles = async (req, res) => {
+  await Note.updateMany({ userId: req.userId }, { title: req.body.title });
+  res.json({ message: "Updated" });
+};
+
+
+Delete Note
+export const deleteNote = async (req, res) => {
+  const note = await Note.findOneAndDelete({
+    _id: req.params.noteId,
+    userId: req.userId
+  });
+  res.json(note);
+};
+
+
+Pagination & Sorting
+export const paginateNotes = async (req, res) => {
+  const { page = 1, limit = 5 } = req.query;
+  const notes = await Note.find({ userId: req.userId })
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(Number(limit));
+  res.json(notes);
+};
+
+
+Aggregation + Search
+export const aggregateNotes = async (req, res) => {
+  const { title } = req.query;
+
+  const notes = await Note.aggregate([
+    { $match: { userId: req.userId } },
+    title ? { $match: { title: { $regex: title, $options: "i" } } } : {},
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    { $unwind: "$user" },
+    {
+      $project: {
+        title: 1,
+        content: 1,
+        "user.name": 1,
+        "user.email": 1
+      }
+    }
+  ]);
+
+  res.json(notes);
+};
+
+
+Bonus (bonus.js)
+=========================================
+var longestCommonPrefix = function(strs) {
+  if (!strs.length) return "";
+  let prefix = strs[0];
+
+  for (let i = 1; i < strs.length; i++) {
+    while (!strs[i].startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+      if (!prefix) return "";
+    }
+  }
+  return prefix;
+};
