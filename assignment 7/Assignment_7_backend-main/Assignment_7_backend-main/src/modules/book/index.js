@@ -1,0 +1,1 @@
+export {default as booksRouter} from './book.controller.js'
