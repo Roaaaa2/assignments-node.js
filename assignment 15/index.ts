@@ -1,3 +1,4 @@
+export {};
 // Q1
 class User {
   public id: number;
@@ -40,7 +41,7 @@ class Admin extends User {
 }
 
 // Q3
-class Note {
+class myNote {
   public id: number;
   public title: string;
   public content: string;
@@ -85,7 +86,7 @@ class UserWithNotebook extends User {
 }
 
 // Q6
-class Note {
+ class Note {
   public id: number;
   public title: string;
   public content: string;
